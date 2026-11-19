@@ -1,0 +1,780 @@
+/* ============================================================
+   STYLES.CSS - every visual decision on the page lives here.
+   Sections are numbered, and app.js uses the same numbering,
+   so "styles.css §5" in a JS comment points back to this file.
+   ------------------------------------------------------------
+   1. Design tokens (colours, hue, easing)
+   2. Layout shell (3-column grid + player bar)
+   3. Background aurora + photo
+   4. Sidebar
+   5. Main area: hero, search, song grid
+   6. Now-playing panel + lyrics
+   7. Player bar (controls, seek, volume)
+   8. Premium button + modal
+   9. Account / checkout / profile
+   10. Responsive: tablet, mobile, small tweaks
+   ============================================================ */
+
+/* ---------------- 1. DESIGN TOKENS --------------
+   Every colour and timing value lives here. --h is the hue of the whole
+   theme; app.js changes it per song and the entire page re-tints.        */
+:root{
+	--bg: #0a0818;
+	--panel: rgba(12,9,30,var(--pa));
+	--pa: .28;
+	--dim:0;
+	--panel2: #2a2358;
+	--gold: #ffcf4d;
+	--text: #f1efff;
+	--muted: #a9a8c4;
+	--h:260;
+	--accent: hsl(var(--h) 100% 68%);
+	--accent2: hsl(calc(var(--h) + 60) 100% 64%);
+	--ease: .25s cubic-bezier(.2,.7,.2,1);
+}
+/* ---------------- 2. LAYOUT SHELL ----------------
+   body is a CSS grid: sidebar | main | now-playing, plus a player row.
+   styles.css §10 re-flows those same areas for tablet and phone.          */
+* {box-sizing:border-box; margin:0; padding:0}
+html,body{height:100%}
+body{
+	font-family: Inter,system-ui,sans-serif;
+	background: var(--bg);
+	color: var(--text);
+	overflow: hidden;
+	padding-top: max(8px,env(safe-area-inset-top));
+	padding-bottom: max(8px,env(safe-area-inset-bottom));
+	padding-left: max(8px,env(safe-area-inset-left));
+	padding-right: max(8px,env(safe-area-inset-right));
+	display: grid;
+	grid-template-columns:240px 1fr 320px;
+	grid-template-rows:1fr 92px;
+	grid-template-areas:"side main now" "player player player";
+	gap:8px;
+}
+@supports (height:100dvh) {
+	html,body{height:100dvh}
+}
+button{font:inherit; color:inherit; background:none; border:0; cursor:pointer}
+button:focus-visible,input:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.panel{
+	background:var(--panel);
+	border-radius:14px;
+	overflow:hidden;
+	backdrop-filter:blur(4px);
+	border:1px solid rgba(255,255,255,.08);
+}
+.panel h2,.panel h3,.panel p,.panel b,.panel span,.panel small{text-shadow:0 1px 6px rgba(0,0,0,.6)}
+.card{background:rgba(38,30,80,.62)!important; backdrop-filter:blur(6px)}
+/* ---------------- 3. BACKGROUND -----------------
+   Two fixed layers behind everything: ::before = soft colour blobs that
+   drift (the aurora), ::after = your photo, dimmed and blurred.            */
+body::before{
+	content:"";
+	position: fixed;
+	inset: -10%;
+	z-index: -1;
+	transition: background 1s;
+	background: radial-gradient(600px 420px at 15% 10%,hsl(var(--h) 100% 52%/.45),transparent),radial-gradient(700px 520px at 90% 90%,hsl(calc(var(--h) + 80) 100% 58%/.4),transparent);
+	animation: aurora 14s ease-in-out infinite alternate;
+}
+body::after{
+	content:"";
+	position: fixed;
+	inset: -3%;
+	z-index: -2;
+	background: linear-gradient(rgba(10,8,24,var(--dim)),rgba(10,8,24,calc(var(--dim) + .2))),url("assets/bg.jpg") center/cover no-repeat;
+	filter: blur(.4px) saturate(1.15) brightness(1.3);
+}
+body::before{opacity:.22; mix-blend-mode:screen}
+@keyframes aurora{to{transform:scale(1.15) translate(-2%,3%)}}
+/* ---------------- 4. SIDEBAR -------------------- */
+.side{grid-area:side; display:flex; flex-direction:column; padding:18px 12px; gap:6px; overflow-y:auto}
+.brand{display:flex; align-items:center; gap:10px; padding:0 10px 16px}
+.logo{
+	width:38px;
+	height:38px;
+	border-radius:12px;
+	display: grid;
+	place-items: center;
+	font-size:20px;
+	background: linear-gradient(135deg,var(--accent),var(--accent2));
+	color: #14122a;
+	transition: background var(--ease);
+}
+.brand b{font-family:Fraunces,Georgia,serif; font-size:18px; line-height:1.1}
+.brand small{display:block; color:var(--muted); font-size:11px; font-weight:400; font-family:Inter,sans-serif}
+.nav button{
+	display:flex;
+	align-items:center;
+	gap:14px;
+	width:100%;
+	padding:11px 12px;
+	border-radius:10px;
+	color:var(--muted);
+	font-weight:500;
+	transition:color var(--ease),background var(--ease);
+}
+.nav button:hover{color:var(--text); background:rgba(255,255,255,.05)}
+.nav button.on{color:var(--text); background:var(--panel2)}
+.nav i{font-style:normal; font-size:19px; width:22px; text-align:center}
+.pl-title{margin:18px 12px 6px; color:var(--muted); font-size:13px; font-weight:600}
+.pl{display:flex; flex-direction:column; gap:2px}
+.pl button{text-align:left; padding:8px 12px; border-radius:8px; color:var(--muted); font-size:14px; transition:var(--ease)}
+.pl button:hover{color:var(--text); background:rgba(255,255,255,.05)}
+.pl button.on{color:var(--text); background:var(--panel2)}
+.pl button .c{float:right; margin-left:8px; font-size:12px; color:rgba(241,239,255,.45)}
+.newal{margin:8px 12px 0; padding:7px 12px; border-radius:8px; text-align:left; color:var(--accent); font-size:13px; font-weight:600}
+.newal:hover{background:rgba(255,255,255,.05)}
+/* ---------------- 5. MAIN AREA ------------------
+   hero + search + the song grid (#grid, filled by app.js §5).            */
+.main{
+	grid-area: main;
+	overflow-y: auto;
+	padding:0 28px 28px;
+	position: relative;
+	background: linear-gradient(180deg,hsl(var(--h) 85% 34%/.12) 0,rgba(12,9,30,.22) 380px);
+	transition: background .6s;
+}
+.hero{padding:44px 0 26px; clear:both}
+.thumb{position:relative; margin-bottom:12px}
+.thumb .art{margin-bottom:0}
+.hero h1{
+	text-shadow:none;
+	filter:drop-shadow(0 2px 8px rgba(0,0,0,.55));
+	background:linear-gradient(90deg,#fff 20%,var(--accent),var(--accent2));
+	-webkit-background-clip:text;
+	background-clip:text;
+	color:transparent;
+	font-family:Fraunces,Georgia,serif;
+	font-size:clamp(30px,5vw,52px);
+	line-height:1.05;
+	margin-bottom:10px;
+}
+.search{display:none; margin:22px 0 4px}
+.search input{
+	width:100%;
+	max-width:420px;
+	padding:13px 18px;
+	border-radius:30px;
+	border:1px solid transparent;
+	background: var(--panel2);
+	color: var(--text);
+	font: inherit;
+}
+.search input::placeholder{color:var(--muted)}
+.main.searching .search,.main.lib .search{display:block}
+.main.searching .hero,.main.lib .hero{display:none}
+h2{font-family:Fraunces,Georgia,serif; font-size:24px; margin:26px 0 14px}
+.grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:16px}
+.card{
+	position:relative;
+	background:var(--panel2);
+	padding:14px;
+	border-radius:12px;
+	text-align:left;
+	transition:transform var(--ease),background var(--ease);
+}
+.card:hover,.card.cur{transform:scale(1.04); background:#342b6a}
+.card.cur{box-shadow:0 0 0 2px var(--accent),0 12px 34px hsl(var(--h) 100% 60%/.5)}
+/* the card of the song that is playing grows more than a hovered one, and lifts
+   above its neighbours so the bigger cover is never clipped by the next card */
+.card.playing{transform:scale(1.07); z-index:3; box-shadow:0 0 0 2px var(--accent),0 18px 46px hsl(var(--h) 100% 62%/.6)}
+.card.playing:hover{transform:scale(1.08)}
+/* the apple button and the add-to-album ＋ share one line under the artist */
+.cardacts{display:flex; align-items:center; gap:6px; margin-top:10px}
+.addal{
+	display:grid;
+	place-items:center;
+	width:29px;
+	height:29px;
+	flex:none;
+	border-radius:999px;
+	font-size:16px;
+	line-height:1;
+	color:rgba(241,239,255,.75);
+	background:rgba(255,255,255,.09);
+	box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);
+	transition:color var(--ease),background var(--ease);
+}
+.addal:hover,.addal:focus-visible{color:#fff; background:rgba(255,255,255,.17)}
+/* the favorite button under each card: an apple in a pill with its name on it,
+   so it is easy to find against the cover art. Purple apple when off, red when
+   the song is favorited.                                                      */
+.card .fav{
+	display:inline-flex;
+	align-items:center;
+	gap:6px;
+	padding:5px 11px;
+	border-radius:999px;
+	font-size:12px;
+	font-weight:600;
+	color:rgba(241,239,255,.75);
+	background:rgba(255,255,255,.09);
+	box-shadow:inset 0 0 0 1px rgba(255,255,255,.18);
+	transition:color var(--ease),background var(--ease),box-shadow var(--ease);
+}
+.card .fav svg{width:17px; height:17px; flex:none}
+.card .fav svg .body{fill:currentColor}
+.card .fav svg .stem{fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round}
+.card .fav:hover,.card .fav:focus-visible{color:#fff; background:rgba(255,255,255,.17)}
+.card .fav.on{color:#ff7a6b; background:rgba(255,90,77,.2); box-shadow:inset 0 0 0 1px rgba(255,122,107,.6)}
+.card .fav.on .fav-t{color:#ffd9d4}
+.eq{position:absolute; left:10px; top:10px; display:none; gap:3px; align-items:flex-end; height:18px; z-index:2}
+.card.playing .eq{display:flex}
+.eq i{width:4px; background:#fff; border-radius:2px; height:100%; animation:eq .9s infinite ease-in-out; transform-origin:bottom}
+.eq i:nth-child(2) { animation-delay: .2s }
+.eq i:nth-child(3) { animation-delay: .4s }
+@keyframes eq{0%,100%{transform:scaleY(.25)} 50%{transform:scaleY(1)}}
+.art{
+	aspect-ratio:1;
+	border-radius:10px;
+	margin-bottom:12px;
+	display: grid;
+	place-items: center;
+	font-family: Fraunces,serif;
+	font-size:44px;
+	color: rgba(0,0,0,.55);
+	box-shadow:0 8px 20px rgba(0,0,0,.35);
+	position: relative;
+	overflow: hidden;
+}
+.art.photo::after,.art[style*="url("]::after{display:none}
+.art::after{
+	content:"";
+	position:absolute;
+	inset:0;
+	background:radial-gradient(circle at 30% 20%,rgba(255,255,255,.4),transparent 55%);
+}
+.card .play{
+	position: absolute;
+	right:8px;
+	bottom:8px;
+	width:44px;
+	height:44px;
+	border-radius:50%;
+	background: var(--accent);
+	color: #14122a;
+	display: grid;
+	place-items: center;
+	opacity:0;
+	transform: translateY(8px);
+	transition: opacity var(--ease),transform var(--ease);
+	box-shadow:0 6px 14px rgba(0,0,0,.4);
+	z-index:2;
+}
+.card:hover .play,.card:focus-within .play,.card.cur .play{opacity:1; transform:none}
+.card b{display:block; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-transform:capitalize}
+.card span{color:var(--muted); font-size:13px}
+.empty{color:var(--muted); padding:20px 0}
+/* ---------------- 6. NOW PLAYING + LYRICS ------- */
+.now{grid-area:now; display:flex; flex-direction:column; padding:18px}
+.now .art{font-size:60px; margin-bottom:14px; flex:none; max-height:210px; aspect-ratio:auto; height:210px}
+/* reading mode: the cover gives its height to the lyrics */
+body.lyr .now .art{display:none}
+.now h3{font-family:Fraunces,serif; font-size:21px; text-transform:capitalize}
+.now .artist{color:var(--muted); font-size:14px; margin-bottom:10px}
+.badge{font-size:11px; color:var(--muted); margin-bottom:8px}
+/* the queue, listed under the lyrics on the right. It never grows past a third
+   of the panel, so the lyrics keep the rest; hidden while the queue is empty. */
+.qwrap{
+	flex:none;
+	display:flex;
+	flex-direction:column;
+	min-height:0;
+	max-height:34%;
+	margin-top:10px;
+	padding-top:8px;
+	border-top:1px solid rgba(255,255,255,.09);
+}
+.qwrap[hidden]{display:none}
+.qhead{display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:6px; font-size:12px; font-weight:600; color:var(--muted)}
+.qhead b{font-weight:600; color:var(--accent)}
+.qlist{display:flex; flex-direction:column; gap:2px; overflow-y:auto; min-height:0; scrollbar-width:none}
+.qrow{display:flex; align-items:center; gap:4px; padding:2px 4px; border-radius:8px}
+.qrow:hover{background:rgba(255,255,255,.06)}
+.qplay{display:flex; align-items:baseline; gap:8px; flex:1; min-width:0; padding:4px 2px; text-align:left}
+.qplay span{flex:none; max-width:60%; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; text-transform:capitalize}
+.qplay small{color:var(--muted); font-size:11px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.qx{flex:none; padding:2px 6px; font-size:12px; color:var(--muted)}
+.qx:hover{color:#ff8a98}
+.lyrics{
+	flex:1;
+	/* without min-height:0 a flex child refuses to shrink below its content, so the
+	   whole lyric box grew past the panel and got clipped at the bottom */
+	min-height:0;
+	overflow-y:auto;
+	/* never scroll or clip sideways: a long line wraps instead */
+	overflow-x:hidden;
+	scroll-behavior:smooth;
+	/* the top/bottom breathing room is set from JS (half the box height) so the first
+	   and last line can be centred; a fixed 30vh was taller than the panel itself */
+	padding:0;
+	-webkit-mask-image:linear-gradient(transparent,#000 18%,#000 82%,transparent);
+	mask-image:linear-gradient(transparent,#000 18%,#000 82%,transparent);
+	scrollbar-width:none;
+}
+.lyrics p{
+	font-family:Fraunces,Georgia,serif;
+	font-size:19px;
+	line-height:1.35;
+	/* the side padding is a gutter for the active line's accent bar; it is set on
+	   every line, so becoming active never changes a line's width or wrapping */
+	padding:7px 14px;
+	border-radius:9px;
+	color:rgba(241,239,255,.28);
+	transition:color .4s,background .4s,box-shadow .4s;
+	/* a long unbroken word must wrap, not stick out past the panel */
+	overflow-wrap:break-word;
+	cursor:pointer;
+}
+/* Emphasis is painted, never laid out: colour, a soft glow, a wash and an accent
+   bar. Scaling the line (what this used to do) pushed long lines past the panel
+   edge and cut their last words off, so no transform or size change here. */
+.lyrics p.on{
+	color:var(--text);
+	text-shadow:0 0 22px hsl(var(--h) 100% 72% / .38);
+	background:linear-gradient(90deg,hsl(var(--h) 100% 70% / .15),transparent 88%);
+	box-shadow:inset 2px 0 0 var(--accent);
+}
+.lyrics p.past{color:rgba(241,239,255,.5)}
+/* instrumental passages: quieter and spaced out, so they read as a marker, not a lyric */
+.lyrics p[data-inst]{font-size:15px; font-style:italic; letter-spacing:.09em; text-transform:uppercase; color:rgba(241,239,255,.22)}
+.lyrics p[data-inst].on{color:var(--accent); text-shadow:none; background:none}
+/* ---------------- 7. PLAYER BAR ----------------- */
+.player{
+	grid-area:player;
+	box-shadow:0 0 36px hsl(var(--h) 100% 60%/.28);
+	display:grid;
+	grid-template-columns:1fr minmax(320px,2fr) 1fr;
+	align-items:center;
+	gap:16px;
+	padding:0 18px;
+	transition:box-shadow var(--ease);
+}
+.pinfo{display:flex; align-items:center; gap:12px; min-width:0}
+.pinfo .art{width:56px; height:56px; margin:0; font-size:22px; flex:none}
+.pinfo div{min-width:0}
+.pinfo b{display:block; font-size:14px; text-transform:capitalize; white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+.pinfo span{font-size:12px; color:var(--muted)}
+/* while a song is playing the bar's cover and title grow and the bar glows
+   harder. Only inner sizes change, so the fixed 92px player row still fits. */
+.pinfo .art{transition:width var(--ease),height var(--ease),font-size var(--ease)}
+.pinfo b{transition:font-size var(--ease)}
+body.playing .player{box-shadow:0 0 52px hsl(var(--h) 100% 60%/.45)}
+body.playing .pinfo .art{width:72px; height:72px; font-size:28px}
+body.playing .pinfo b{font-size:16px}
+/* ---- 7b. FULL-SCREEN PLAYER ----
+   body.fs (app.js toggleFs) blows the footer up into the whole window and docks
+   the lyric sheet under it. The bar itself keeps pointer-events:none so the
+   lyrics behind it can still be tapped.                                      */
+body.fs .side,body.fs .main,body.fs .bnav{display:none}
+body.fs .player{
+	position:fixed;
+	inset:0;
+	display:flex;
+	flex-direction:column;
+	align-items:center;
+	justify-content:center;
+	gap:14px;
+	padding:0 24px 34vh;
+	background:transparent;
+	border:0;
+	box-shadow:none;
+	backdrop-filter:none;
+	pointer-events:none;
+	z-index:3;
+}
+body.fs .player > *{pointer-events:auto}
+body.fs .pinfo{flex-direction:column; gap:14px; text-align:center}
+body.fs .pinfo .art,body.playing.fs .pinfo .art{width:min(30vh,260px); height:min(30vh,260px); font-size:72px; border-radius:20px; margin:0}
+body.fs .pinfo b{font-size:24px; white-space:normal}
+body.fs .pinfo span{font-size:14px}
+body.fs .pinfo .only-small{display:none}
+body.fs .center{width:100%; max-width:520px}
+body.fs .ctrls{gap:24px}
+body.fs .ctrls .ic{width:42px; height:42px; font-size:21px}
+body.fs .ctrls .ic.big{width:58px; height:58px}
+body.fs .vol{width:100%; max-width:320px; justify-content:center}
+body.fs .now{
+	position:fixed;
+	left:0; right:0; bottom:0; top:auto;
+	height:34vh;
+	padding:0 6vw 8px;
+	background:linear-gradient(180deg,transparent,hsl(var(--h) 60% 10%/.55));
+	border:0;
+	border-radius:0;
+	box-shadow:none;
+	backdrop-filter:none;
+	z-index:2;
+}
+body.fs .now .art,body.fs .now h3,body.fs .now .artist,body.fs .now .badge{display:none}
+body.fs .qwrap{display:none}
+body.fs .lyrics p{font-size:21px}
+.center{display:flex; flex-direction:column; align-items:center; gap:8px}
+.ctrls{display:flex; align-items:center; gap:18px}
+.ic{
+	width:34px;
+	height:34px;
+	display:grid;
+	place-items:center;
+	color:var(--muted);
+	font-size:18px;
+	border-radius:50%;
+	transition:color var(--ease),transform var(--ease);
+	position:relative;
+}
+.ic:hover{color:var(--text); transform:scale(1.12)}
+.ic.act{color:var(--accent)}
+.ic.act::after{content:""; position:absolute; bottom:1px; width:4px; height:4px; border-radius:50%; background:var(--accent)}
+.ic svg{width:20px; height:20px; fill:currentColor}
+.big{
+	width:44px;
+	height:44px;
+	background:linear-gradient(135deg,var(--accent),var(--accent2));
+	box-shadow:0 0 20px hsl(var(--h) 100% 60%/.6);
+	color:#14122a!important;
+	transition:transform var(--ease),background var(--ease);
+}
+.big:hover{transform:scale(1.1)}
+.bar{
+	display:flex;
+	align-items:center;
+	gap:10px;
+	width:100%;
+	font-size:12px;
+	color:var(--muted);
+	font-variant-numeric:tabular-nums;
+}
+.bar span{width:40px}
+.bar span:first-child{text-align:right}
+input[type=range]{
+	-webkit-appearance:none;
+	appearance:none;
+	height:5px;
+	border-radius:5px;
+	background:linear-gradient(90deg,var(--accent) var(--p,0%),#4a4d75 var(--p,0%));
+	flex:1;
+	cursor:pointer;
+	min-width:0;
+}
+input[type=range]::-webkit-slider-thumb{
+	-webkit-appearance:none;
+	width:13px;
+	height:13px;
+	border-radius:50%;
+	background:#fff;
+	opacity:0;
+	transition:opacity .2s;
+}
+input[type=range]:hover::-webkit-slider-thumb,input[type=range]:focus-visible::-webkit-slider-thumb{opacity:1}
+input[type=range]::-moz-range-thumb{width:13px; height:13px; border:0; border-radius:50%; background:#fff}
+.vol{display:flex; align-items:center; justify-content:flex-end; gap:8px}
+.vol input{max-width:110px}
+.only-small{display:none}
+.bnav{display:none}
+/* ---------------- 8. PREMIUM + MODAL ------------ */
+.gopro,.cta{
+	background:linear-gradient(135deg,#ffe27a,#ff9a56);
+	color:#2a1600;
+	font-weight:600;
+	border-radius:30px;
+	padding:11px 16px;
+	transition:transform var(--ease);
+}
+.gopro{margin:14px 6px 0}
+.gopro:hover,.cta:hover,.prem-btn:hover{transform:scale(1.05)}
+.prem-btn{
+	float:right;
+	position:sticky;
+	top:14px;
+	margin-top:14px;
+	z-index:5;
+	padding:9px 16px;
+	border-radius:30px;
+	background:linear-gradient(135deg,#ffe27a,#ff9a56);
+	color:#2a1600;
+	font-weight:600;
+	font-size:13px;
+	box-shadow:0 4px 18px rgba(255,170,60,.45);
+	transition:transform var(--ease);
+}
+body.premium .logo{box-shadow:0 0 0 2px var(--gold),0 0 16px rgba(255,207,77,.6)}
+body.premium #plan{color:var(--gold)}
+.modal{
+	position:fixed;
+	inset:0;
+	background:rgba(5,3,15,.72);
+	backdrop-filter:blur(6px);
+	display:grid;
+	place-items:center;
+	z-index:50;
+	padding:16px;
+}
+.modal[hidden] {display:none}
+.sheet{
+	position:relative;
+	max-width:660px;
+	width:100%;
+	max-height:92vh;
+	overflow:auto;
+	background:#1a1540;
+	border-radius:20px;
+	padding:26px;
+	border:1px solid rgba(255,207,77,.45);
+}
+.sheet h2{margin:0 0 4px}
+.sheet p{color:var(--muted); font-size:14px; margin-bottom:16px}
+.x{position:absolute; right:16px; top:14px; color:var(--muted); font-size:18px; width:36px; height:36px}
+.plans{display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:18px}
+.plan{padding:16px; border-radius:14px; background:rgba(255,255,255,.05)}
+.plan.pro{background:linear-gradient(160deg,rgba(255,207,77,.22),rgba(255,110,80,.14)); border:1px solid var(--gold)}
+.plan b{font-family:Fraunces,serif; font-size:19px}
+.plan ul{list-style:none; margin-top:10px; font-size:13.5px; line-height:1.9; color:var(--muted)}
+.plan li::before{content:"✓ "; color:var(--accent)}
+.plan li.no::before{content:"✕ "; color:#ff7a8a}
+.plan.pro li::before{color:var(--gold)}
+#tools{margin:0 0 16px}
+#tools h4{font-size:13px;margin:12px 0 8px}
+.chips {display:flex; gap:8px; flex-wrap:wrap}
+.chips button{padding:8px 14px; border-radius:20px; background:rgba(255,255,255,.08); font-size:13px; min-height:36px}
+.chips button.on{background:var(--accent); color:#14122a; font-weight:600}
+.toast{
+	position:fixed;
+	left:50%;
+	bottom:116px;
+	transform:translate(-50%,20px);
+	background:#fff;
+	color:#1a1540;
+	padding:10px 18px;
+	border-radius:30px;
+	font-size:14px;
+	font-weight:500;
+	opacity:0;
+	pointer-events:none;
+	transition:.3s;
+	z-index:60;
+	max-width:90vw;
+	text-align:center;
+}
+.toast.show{opacity:1; transform:translate(-50%,0)}
+@media (max-width:640px) {
+	.plans{grid-template-columns:1fr}
+}
+/* ---------------- 9. ACCOUNT, CHECKOUT, PROFILE - */
+.auth{z-index:70; background:rgba(5,3,15,.9)}
+.auth .sheet{max-width:420px; text-align:center}
+.auth .brand{justify-content:center; padding-bottom:10px}
+.field{
+	width:100%;
+	padding:13px 16px;
+	border-radius:12px;
+	border:1px solid rgba(255,255,255,.15);
+	background:rgba(255,255,255,.07);
+	color:var(--text);
+	font:inherit;
+	margin:6px 0 14px;
+}
+.sheet .cta{width:100%; margin-top:6px}
+.cta:disabled{opacity:.6; cursor:wait}
+.link{display:block; margin:12px auto 0; color:var(--muted); text-decoration:underline; font-size:13px}
+/* album sheet: one row per album, then the create field */
+.alrows{display:flex; flex-direction:column; gap:6px; margin:14px 0}
+.alrow{display:flex; align-items:center; justify-content:space-between; gap:10px; padding:11px 14px; border-radius:10px; background:rgba(255,255,255,.05); font-size:14px; text-align:left}
+.alrow:hover{background:rgba(255,255,255,.1)}
+.alrow.on{background:hsl(var(--h) 100% 68%/.16); box-shadow:inset 0 0 0 1px var(--accent)}
+.alrow b{font-size:12px; font-weight:600; color:var(--accent)}
+.alname{flex:1; text-align:left; font-size:14px}
+.alrow .almini{flex:none; min-width:26px; height:26px; padding:0 8px; border-radius:8px; font-size:12px; font-weight:600; color:var(--muted)}
+.alrow .almini:hover{color:var(--text); background:rgba(255,255,255,.12)}
+.alrow .almini.ok{color:var(--accent)}
+.alrow .alin{flex:1; padding:7px 10px; font-size:13px}
+.alrow.perm{background:none; box-shadow:inset 0 0 0 1px rgba(255,255,255,.1)}
+.alrow.perm b{color:var(--muted)}
+.alnew{display:flex; gap:8px}
+.alnew .field{flex:1}
+.alnew .cta{width:auto; margin:0; padding:0 18px}
+.lbl{display:flex; justify-content:space-between; font-size:13px; color:var(--muted); margin:14px 0 6px}
+.err{color:#ff8a98; font-size:13px; min-height:18px; margin-bottom:6px}
+.note{
+	font-size:12px;
+	color:var(--muted);
+	background:rgba(255,255,255,.06);
+	padding:10px 12px;
+	border-radius:10px;
+	margin-bottom:12px;
+	line-height:1.5;
+}
+.plans2{display:grid; grid-template-columns:1fr 1fr; gap:14px; margin:8px 0 16px}
+.pcard{
+	position:relative;
+	display:flex;
+	flex-direction:column;
+	gap:4px;
+	text-align:left;
+	padding:20px 14px 14px;
+	border-radius:14px;
+	background:rgba(255,255,255,.06);
+	border:2px solid transparent;
+	transition:var(--ease);
+}
+.pcard.on{border-color:var(--gold); background:linear-gradient(160deg,rgba(255,207,77,.2),rgba(255,110,80,.12))}
+.pcard strong{font-family:Fraunces,serif; font-size:28px}
+.pcard span{font-size:12px; color:var(--muted)}
+.pcard em{
+	position:absolute;
+	top:-10px;
+	left:12px;
+	font-style:normal;
+	font-size:11px;
+	font-weight:600;
+	background:var(--gold);
+	color:#2a1600;
+	padding:3px 9px;
+	border-radius:20px;
+}
+.perks{list-style:none; font-size:13.5px; line-height:1.9; color:var(--muted); margin-bottom:14px}
+.perks li::before{content:"✓ "; color:var(--gold)}
+.receipt{border-radius:14px; background:rgba(255,255,255,.06); padding:6px 16px; margin:12px 0 16px}
+.receipt div{
+	display:flex;
+	justify-content:space-between;
+	padding:9px 0;
+	border-bottom:1px solid rgba(255,255,255,.08);
+	font-size:14px;
+}
+.receipt div:last-child{border:0}
+.receipt span{color:var(--muted)}
+.prof{display:flex; gap:14px; align-items:center; margin:6px 0 18px}
+.prof h2{margin:0 0 6px!important}
+.avatar{
+	width:58px;
+	height:58px;
+	border-radius:50%;
+	display:grid;
+	place-items:center;
+	font-family:Fraunces,serif;
+	font-size:26px;
+	color:#14122a;
+	background:linear-gradient(135deg,var(--accent),var(--accent2));
+	flex:none;
+}
+.chip{font-size:12px; padding:3px 10px; border-radius:20px; background:rgba(255,255,255,.12)}
+body.premium .chip{background:var(--gold); color:#2a1600; font-weight:600}
+.rows{display:flex; flex-direction:column; gap:6px}
+.rows button{
+	display:flex;
+	align-items:center;
+	gap:14px;
+	padding:14px;
+	border-radius:12px;
+	background:rgba(255,255,255,.05);
+	text-align:left;
+	min-height:48px;
+	transition:background var(--ease);
+}
+.rows button:hover{background:rgba(255,255,255,.12)}
+.rows i{font-style:normal; width:22px; text-align:center}
+.rows em{margin-left:auto; font-style:normal; color:var(--muted)}
+.rows .danger{color:#ff8a98}
+.hist{display:flex; flex-direction:column; gap:4px; max-height:50vh; overflow:auto}
+.hist button{display:flex; gap:12px; align-items:center; padding:8px; border-radius:10px; text-align:left}
+.hist button:hover{background:rgba(255,255,255,.08)}
+.hist .art{width:44px; height:44px; margin:0; font-size:18px; flex:none; border-radius:8px}
+.hist b{display:block; font-size:14px; text-transform:capitalize}
+.hist small{color:var(--muted); font-size:12px}
+.sw{display:flex; align-items:center; gap:10px; margin:18px 0 6px; font-size:14px}
+.sw input{width:20px; height:20px; accent-color:var(--accent)}
+.me-btn{
+	float:right;
+	position:sticky;
+	top:14px;
+	margin:14px 0 0 8px;
+	z-index:5;
+	width:38px;
+	height:38px;
+	border-radius:50%;
+	background:linear-gradient(135deg,var(--accent),var(--accent2));
+	color:#14122a;
+	font-weight:700;
+	box-shadow:0 4px 16px rgba(0,0,0,.4);
+}
+.empty{color:var(--muted); padding:16px 0}
+/* ---------------- 10. RESPONSIVE ----------------
+   Same markup, same grid areas, narrower columns.                       */
+@media (max-width:1023px) {
+	body{grid-template-columns:76px 1fr; grid-template-areas:"side main" "player player"}
+	.now{display:none; position:fixed; inset:8px 8px 108px; z-index:20}
+	body.lyr .now{display:flex}
+	.only-small{display:grid}
+	.brand div:not(.logo),.nav span,.pl-title,.pl,.newal,.gopro{display:none}
+	.brand{justify-content:center; padding:0 0 14px}
+	.nav button{justify-content:center; padding:12px 0}
+	.player{grid-template-columns:1fr 2fr auto}
+	.vol input{display:none}
+}
+/* 10b. phones (under 768px): sidebar becomes a bottom bar */
+@media (max-width:767px) {
+	body{
+		grid-template-columns:1fr;
+		grid-template-rows:1fr auto 58px;
+		grid-template-areas:"main" "player" "bnav";
+		gap:6px;
+		padding:6px;
+	}
+	.side{display:none}
+	.main{padding:0 16px 20px}
+	.grid{grid-template-columns:repeat(2,1fr); gap:12px}
+	.player{grid-template-columns:1fr; gap:8px; padding:10px 14px}
+	.pinfo{justify-content:flex-start}
+	.vol{display:none}
+	.ctrls{gap:10px}
+	.ic{width:44px; height:44px}
+	.big{width:52px; height:52px}
+	.now{inset:6px 6px 190px}
+	.bnav{grid-area:bnav; display:flex; justify-content:space-around; align-items:center; background:var(--panel); border-radius:14px}
+	.bnav button{
+		display:flex;
+		flex-direction:column;
+		align-items:center;
+		gap:2px;
+		font-size:11px;
+		color:var(--muted);
+		padding:6px 18px;
+		min-height:44px;
+	}
+	.bnav button.on{color:var(--accent)}
+	.bnav i{font-style:normal; font-size:19px}
+	.pinfo .only-small{margin-left:auto}
+}
+@media (hover:none) {
+	.card .play{opacity:1; transform:none}
+	input[type=range]::-webkit-slider-thumb{opacity:1}
+	input[type=range] {height:26px; padding:10px 0; background-clip:content-box; touch-action:none}
+	.card:hover{transform:none}
+}
+@media (max-width:767px) {
+	.toast{bottom:210px}
+	.hero{padding-top:20px}
+	.lyrics p{font-size:18px}
+	.sheet{padding:20px 16px}
+}
+@media (max-width:360px) {
+	.ctrls{gap:4px}
+	.ic{width:40px; height:40px}
+	.big{width:48px; height:48px}
+	.grid{gap:10px}
+	.card{padding:10px}
+}
+@media (max-height:520px) and (orientation:landscape) {
+	.hero{padding:14px 0}
+	.now .art{height:90px}
+}
+@media (min-width:1700px) {
+	body{grid-template-columns:280px 1fr 380px}
+	.grid{grid-template-columns:repeat(auto-fill,minmax(190px,1fr))}
+}
+@media (prefers-reduced-motion:reduce) {
+	* {animation:none!important; transition:none!important}
+	.lyrics{scroll-behavior:auto}
+}

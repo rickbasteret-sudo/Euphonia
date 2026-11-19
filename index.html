@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Music Therapy</title>
+
+    <!-- Fonts: Fraunces for headings/lyrics, Inter for everything else -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Every rule that makes this page look the way it does -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+    <!-- ============ SIDEBAR (styles.css §4) ============
+         Logo, the 4 nav buttons (data-v = which view to show), the playlist
+         filter buttons (data-mood = heartbreak | faith | all) and Go Premium. -->
+    <aside class="side panel">
+        <div class="brand">
+            <div class="logo">♪</div>
+            <div><b>Music Therapy</b><small id="plan"></small></div>
+        </div>
+        <nav class="nav" aria-label="Main">
+            <button data-v="home" class="on"><i>⌂</i><span>Home</span></button>
+            <button data-v="search"><i>⌕</i><span>Search</span></button>
+            <button data-v="lib"><i>▤</i><span>Your Library</span></button>
+            <button data-me><i>☺</i><span>Me</span></button>
+        </nav>
+        <div class="pl-title">Healing Playlists</div>
+        <div class="pl">
+            <button data-mood="heartbreak">Heartbreak &amp; Healing</button>
+            <button data-mood="faith">Faith &amp; Hope</button>
+            <button data-mood="all">+ All songs</button>
+        </div>
+        <div class="pl-title">Your albums</div>
+        <div class="pl" id="albums"></div>
+        <button class="newal" id="newAl">＋ New album</button>
+        <button class="gopro" id="goPro">★ Go Premium</button>
+    </aside>
+
+    <!-- ============ MAIN COLUMN (styles.css §5) ============
+         #greet  greeting text, set from the clock in app.js §10
+         #q      search box (hidden until you click Search)
+         #grid   the song cards - app.js fills this with <div class="card"> -->
+    <main class="main panel" id="main">
+        <button class="me-btn" id="meTop" data-me aria-label="Me">☺</button>
+        <button class="prem-btn" id="premTop">★ Premium</button>
+
+        <section class="hero">
+            <h1 id="greet">Good evening</h1>
+        </section>
+
+        <div class="search">
+            <input id="q" type="search" placeholder="Search songs or artists" aria-label="Search songs">
+        </div>
+
+        <h2 id="ttl">Your 10 songs</h2>
+        <div class="grid" id="grid"></div>
+    </main>
+
+    <!-- ============ NOW PLAYING + LYRICS (styles.css §6) ============
+         #nArt cover, #nT title, #nA artist, #nB small badge (e.g. "demo tone"),
+         #lyr the lyric lines that app.js highlights as the song plays. -->
+    <aside class="now panel" aria-label="Now playing">
+        <div class="art" id="nArt"></div>
+        <h3 id="nT"></h3>
+        <div class="artist" id="nA"></div>
+        <div class="badge" id="nB"></div>
+        <div class="lyrics" id="lyr"></div>
+        <!-- The queue, listed down the right side (app.js renderQueue) -->
+        <div class="qwrap" id="qwrap" hidden>
+            <div class="qhead"><span>▶ Up next</span><b id="qcount"></b></div>
+            <div class="qlist" id="qlist"></div>
+        </div>
+    </aside>
+
+    <!-- ============ PLAYER BAR (styles.css §7) ============
+         Left: what is playing. Middle: controls + seek bar. Right: volume.
+         Every id here is wired to a handler in app.js §7. -->
+    <footer class="player panel">
+        <div class="pinfo">
+            <div class="art" id="pArt"></div>
+            <div><b id="pT"></b><span id="pA"></span></div>
+            <button class="ic only-small" id="lyrBtn" aria-label="Show lyrics">♫</button>
+        </div>
+
+        <div class="center">
+            <div class="ctrls">
+                <button class="ic" id="shuf" aria-label="Shuffle">⇄</button>
+                <button class="ic" id="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M6 5h2v14H6zM20 5v14L9 12z"/></svg></button>
+                <button class="ic big" id="pp" aria-label="Play"></button>
+                <button class="ic" id="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M16 5h2v14h-2zM4 5v14l11-7z"/></svg></button>
+                <button class="ic" id="loop" aria-label="Loop">⟲</button>
+            </div>
+            <div class="bar">
+                <span id="cur">0:00</span>
+                <input type="range" id="seek" min="0" max="1000" value="0" aria-label="Seek">
+                <span id="rem">-0:00</span>
+            </div>
+        </div>
+
+        <div class="vol">
+            <button class="ic" id="mute" aria-label="Mute">🔊</button>
+            <input type="range" id="vol" min="0" max="100" value="80" aria-label="Volume">
+            <button class="ic" id="fsBtn" aria-label="Full screen player" title="Full screen">⤢</button>
+        </div>
+    </footer>
+
+    <!-- ============ PREMIUM SHEET (styles.css §8) ============
+         Empty here on purpose: app.js §9b writes the plan cards, the fake
+         checkout and the receipt into #mBody. -->
+    <div class="modal" id="modal" hidden>
+        <div class="sheet" role="dialog" aria-modal="true" aria-label="Premium">
+            <button class="x" id="mX" aria-label="Close">✕</button>
+            <div id="mBody"></div>
+        </div>
+    </div>
+
+    <!-- ============ "ME" SHEET (styles.css §9) ============
+         Profile, settings and history screens, drawn by app.js §9c. -->
+    <div class="modal" id="meModal" hidden>
+        <div class="sheet" role="dialog" aria-modal="true" aria-label="Me">
+            <button class="x" id="meX" aria-label="Close">✕</button>
+            <div id="meBody"></div>
+        </div>
+    </div>
+
+    <!-- ============ SIGN-IN SHEET ============
+         Shown on first visit or after signing out. It is only a name: there is
+         no password and no server (see app.js §9, startSession). -->
+    <div class="modal auth" id="auth" hidden>
+        <div class="sheet" role="dialog" aria-modal="true" aria-label="Sign in">
+            <div class="brand"><div class="logo">♪</div><div><b>Music Therapy</b></div></div>
+            <h2>Welcome</h2>
+            <p>Sign in to save your listening history, settings, and Premium.</p>
+            <input class="field" id="uName" maxlength="20" placeholder="Your name" autocomplete="nickname" aria-label="Your name">
+            <button class="cta" id="uGo">Sign in</button>
+        </div>
+    </div>
+
+    <!-- ============ ALBUM SHEET ============
+         Create an album, or add the song you tapped ＋ on to one.
+         app.js §5c writes #alBody. -->
+    <div class="modal" id="albumModal" hidden>
+        <div class="sheet" role="dialog" aria-modal="true" aria-label="Albums">
+            <button class="x" id="alX" aria-label="Close">✕</button>
+            <div id="alBody"></div>
+        </div>
+    </div>
+
+    <!-- Little white pill that slides up with a message (app.js toast()) -->
+    <div class="toast" id="toast" role="status"></div>
+
+    <!-- ============ BOTTOM NAV, PHONES ONLY (styles.css §10b) ============
+         Same data-v values as the sidebar, so the same handler drives both. -->
+    <nav class="bnav" aria-label="Main mobile">
+        <button data-v="home" class="on"><i>⌂</i>Home</button>
+        <button data-v="search"><i>⌕</i>Search</button>
+        <button data-v="lib"><i>▤</i>Library</button>
+        <button data-me><i>☺</i>Me</button>
+    </nav>
+
+    <!-- All behaviour lives in app.js; defer = run after the HTML above exists -->
+    <script src="app.js" defer></script>
+</body>
+</html>
