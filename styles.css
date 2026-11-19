@@ -13,6 +13,7 @@
    8. Premium button + modal
    9. Account / checkout / profile
    10. Responsive: tablet, mobile, small tweaks
+   11. Ad break (free plan)
    ============================================================ */
 
 /* ---------------- 1. DESIGN TOKENS --------------
@@ -102,6 +103,15 @@ body::before{opacity:.22; mix-blend-mode:screen}
 	color: #14122a;
 	transition: background var(--ease);
 }
+/* The logo drawing: two beamed eighth notes with a sound wave between them.
+   Colour, stroke widths and caps all live here - the SVG in index.html is
+   geometry only (viewBox, d, cx/cy), so no styling sits in the markup.   */
+.logo .mark{width:24px; height:24px; display:block}
+.logo .mark path,.logo .mark ellipse{fill:none; stroke:currentColor; stroke-linecap:round}
+.logo .mark .beam{stroke-width:2.4; stroke-linecap:butt}
+.logo .mark .stem{stroke-width:1.7}
+.logo .mark .head{fill:currentColor; stroke:none}
+.logo .mark .wave{stroke-width:1.6}
 .brand b{font-family:Fraunces,Georgia,serif; font-size:18px; line-height:1.1}
 .brand small{display:block; color:var(--muted); font-size:11px; font-weight:400; font-family:Inter,sans-serif}
 .nav button{
@@ -368,6 +378,10 @@ body.playing .pinfo b{font-size:16px}
    body.fs (app.js toggleFs) blows the footer up into the whole window and docks
    the lyric sheet under it. The bar itself keeps pointer-events:none so the
    lyrics behind it can still be tapped.                                      */
+/* full screen paints nothing itself: the cover and controls sit straight on the
+   page's own backdrop, so that part stays see-through. Only the lyric sheet is
+   filled — a flat light tint of the song's --h (see §7b rules below). */
+body.fs{background:transparent}
 body.fs .side,body.fs .main,body.fs .bnav{display:none}
 body.fs .player{
 	position:fixed;
@@ -401,10 +415,13 @@ body.fs .now{
 	left:0; right:0; bottom:0; top:auto;
 	height:34vh;
 	padding:0 6vw 8px;
-	background:linear-gradient(180deg,transparent,hsl(var(--h) 60% 10%/.55));
+	background:hsl(var(--h) 45% 12%);
+	/* the sheet sits over the photo, so a hairline in the song's accent plus a
+	   soft upward shadow keeps it from merging with the backdrop. */
 	border:0;
+	border-top:2px solid hsl(var(--h) 95% 72% / .38);
 	border-radius:0;
-	box-shadow:none;
+	box-shadow:0 -20px 44px hsl(var(--h) 70% 4% / .55);
 	backdrop-filter:none;
 	z-index:2;
 }
@@ -539,6 +556,8 @@ body.premium #plan{color:var(--gold)}
 .chips {display:flex; gap:8px; flex-wrap:wrap}
 .chips button{padding:8px 14px; border-radius:20px; background:rgba(255,255,255,.08); font-size:13px; min-height:36px}
 .chips button.on{background:var(--accent); color:#14122a; font-weight:600}
+.swh{font-size:12px; margin:20px 0 8px; color:var(--muted); font-weight:600; letter-spacing:.05em; text-transform:uppercase}
+.planset button{border:1px solid rgba(255,255,255,.18)}
 .toast{
 	position:fixed;
 	left:50%;
@@ -777,4 +796,62 @@ body.premium .chip{background:var(--gold); color:#2a1600; font-weight:600}
 @media (prefers-reduced-motion:reduce) {
 	* {animation:none!important; transition:none!important}
 	.lyrics{scroll-behavior:auto}
+}
+
+/* ---------------- 11. AD BREAK (free plan) ------
+   A pre-roll clip covers the page before each song. app.js §4b fills #adVid,
+   counts down and starts the music. Premium listeners never see this.      */
+.ad{
+	position:fixed;
+	inset:0;
+	z-index:45;
+	display:grid;
+	place-items:center;
+	padding:18px;
+	background:rgba(4,2,12,.94);
+	backdrop-filter:blur(10px);
+}
+.ad[hidden]{display:none}
+.adbox{
+	width:fit-content;
+	max-width:94vw;
+	max-height:100%;
+	display:flex;
+	flex-direction:column;
+	border-radius:16px;
+	overflow:hidden;
+	background:#000;
+	border:1px solid rgba(255,255,255,.14);
+	box-shadow:0 30px 90px rgba(0,0,0,.7);
+}
+/* width/height stay auto so portrait and landscape clips both keep their shape. */
+#adVid{display:block; max-width:100%; max-height:calc(100vh - 150px); background:#000}
+.adbar{
+	display:flex;
+	align-items:center;
+	gap:10px;
+	padding:10px 14px;
+	background:#120e2c;
+	font-size:12.5px;
+	color:var(--muted);
+	flex-wrap:wrap;
+}
+.adtag{
+	background:var(--gold);
+	color:#2a1600;
+	font-weight:700;
+	letter-spacing:.08em;
+	text-transform:uppercase;
+	font-size:10.5px;
+	padding:3px 8px;
+	border-radius:6px;
+}
+.adtime{font-variant-numeric:tabular-nums; color:var(--text)}
+.adwhat{flex:1; min-width:110px}
+.adpro{color:var(--gold); font-weight:600; font-size:12.5px; padding:6px 10px; border-radius:20px; background:rgba(255,207,77,.12)}
+.adskip{padding:8px 16px; font-size:12.5px}
+.adskip:disabled{opacity:.45; cursor:default}
+@media (max-width:520px) {
+	.adbar{gap:8px; padding:8px 10px}
+	.adwhat{display:none}
 }

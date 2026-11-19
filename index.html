@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>Music Therapy</title>
+    <title>Euphonia</title>
 
     <!-- Fonts: Fraunces for headings/lyrics, Inter for everything else -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,12 +15,30 @@
 <body>
 
     <!-- ============ SIDEBAR (styles.css §4) ============
-         Logo, the 4 nav buttons (data-v = which view to show), the playlist
-         filter buttons (data-mood = heartbreak | faith | all) and Go Premium. -->
+         Logo (two notes with a sound wave between them - the same drawing is
+         repeated in the sign-in sheet), the 4 nav buttons (data-v = which view
+         to show), the playlist filter buttons (data-mood = heartbreak | faith |
+         all) and Go Premium. -->
     <aside class="side panel">
         <div class="brand">
-            <div class="logo">♪</div>
-            <div><b>Music Therapy</b><small id="plan"></small></div>
+            <div class="logo">
+                <svg class="mark" viewBox="3.4 5.1 17.2 14.2" aria-hidden="true">
+                    <!-- beam joining the two notes -->
+                    <path class="beam" d="M7.7 6.3h9.6"/>
+                    <!-- stems -->
+                    <path class="stem" d="M7.7 6.3v10.1"/>
+                    <path class="stem" d="M17.3 6.3v10.1"/>
+                    <!-- note heads -->
+                    <ellipse class="head" cx="6.4" cy="16.4" rx="2" ry="1.5" transform="rotate(-18 6.4 16.4)"/>
+                    <ellipse class="head" cx="16" cy="16.4" rx="2" ry="1.5" transform="rotate(-18 16 16.4)"/>
+                    <!-- the wave of music between them -->
+                    <path class="wave" d="M9.9 10.8v2.4"/>
+                    <path class="wave" d="M11.6 9.4v6"/>
+                    <path class="wave" d="M13.3 10.4v3.4"/>
+                    <path class="wave" d="M15 9.9v4.4"/>
+                </svg>
+            </div>
+            <div><b>Euphonia</b><small id="plan"></small></div>
         </div>
         <nav class="nav" aria-label="Main">
             <button data-v="home" class="on"><i>⌂</i><span>Home</span></button>
@@ -108,6 +126,22 @@
         </div>
     </footer>
 
+    <!-- ============ AD BREAK (styles.css §11) ============
+         Free listeners get one random clip from ads/ before every song.
+         app.js §4b loads #adVid, counts down and starts the music after it. -->
+    <div class="ad" id="ad" hidden>
+        <div class="adbox">
+            <video id="adVid" playsinline preload="auto"></video>
+            <div class="adbar">
+                <span class="adtag">Ad</span>
+                <span class="adtime" id="adClock">0:00</span>
+                <span class="adwhat">Advertisement · Free plan</span>
+                <button class="adpro" id="adPro">Remove ads ★</button>
+                <button class="cta adskip" id="adSkip" disabled>Skip ad</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ============ PREMIUM SHEET (styles.css §8) ============
          Empty here on purpose: app.js §9b writes the plan cards, the fake
          checkout and the receipt into #mBody. -->
@@ -132,7 +166,22 @@
          no password and no server (see app.js §9, startSession). -->
     <div class="modal auth" id="auth" hidden>
         <div class="sheet" role="dialog" aria-modal="true" aria-label="Sign in">
-            <div class="brand"><div class="logo">♪</div><div><b>Music Therapy</b></div></div>
+            <div class="brand">
+                <div class="logo">
+                    <svg class="mark" viewBox="3.4 5.1 17.2 14.2" aria-hidden="true">
+                        <path class="beam" d="M7.7 6.3h9.6"/>
+                        <path class="stem" d="M7.7 6.3v10.1"/>
+                        <path class="stem" d="M17.3 6.3v10.1"/>
+                        <ellipse class="head" cx="6.4" cy="16.4" rx="2" ry="1.5" transform="rotate(-18 6.4 16.4)"/>
+                        <ellipse class="head" cx="16" cy="16.4" rx="2" ry="1.5" transform="rotate(-18 16 16.4)"/>
+                        <path class="wave" d="M9.9 10.8v2.4"/>
+                        <path class="wave" d="M11.6 9.4v6"/>
+                        <path class="wave" d="M13.3 10.4v3.4"/>
+                        <path class="wave" d="M15 9.9v4.4"/>
+                    </svg>
+                </div>
+                <div><b>Euphonia</b></div>
+            </div>
             <h2>Welcome</h2>
             <p>Sign in to save your listening history, settings, and Premium.</p>
             <input class="field" id="uName" maxlength="20" placeholder="Your name" autocomplete="nickname" aria-label="Your name">

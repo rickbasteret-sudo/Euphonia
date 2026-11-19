@@ -1,5 +1,5 @@
 /* ============================================================
-   APP.JS - all the behaviour of the Music Therapy page.
+   APP.JS - all the behaviour of the Euphonia page.
    ------------------------------------------------------------
    SECTIONS (same numbers as styles.css)
    1. Song data + saved settings
@@ -593,6 +593,7 @@ function load(i, autoplay) {
     S.mode = "file";
     S.pos = 0;
     synthBase = 0;
+    adDone = false;              // a new song means a new ad break for free listeners
     const s = SONGS[i];
     audio.src = s.src;
     audio.playbackRate = S.speed;
@@ -612,7 +613,69 @@ function useSynth() {
     renderLyrics();
     play();
 }
+/* ---------- 4b. AD BREAK (free plan) ----------
+   Every new song starts with a random clip from ads/. Premium listeners go
+   straight to the music. adDone records that the current song already paid
+   its ad, so pause -> play does not replay the clip.                       */
+const ADS = ["ads/Ad1.mp4", "ads/Ad2.mp4", "ads/ad3.mp4", "ads/ad4.mp4"];
+const AD_SKIP = 5;                   // seconds before the Skip button unlocks
+let adTimer = 0, adIdx = -1, adAfter = null, adDone = false;
+const adOpen = () => !!$("ad") && !$("ad").hidden;   // #ad only exists in the current index.html
+function pickAd() {                  // random, but never the same clip twice in a row
+    const pool = ADS.filter((_, k) => k !== adIdx);
+    const src = pool[Math.floor(Math.random() * pool.length)];
+    adIdx = ADS.indexOf(src);
+    return src;
+}
+function stopAd() {                  // close the overlay and start the song
+    const v = $("adVid");
+    clearInterval(adTimer);
+    adTimer = 0;
+    v.onended = null;
+    v.pause();
+    v.removeAttribute("src");
+    v.load();                        // let go of the file
+    $("ad").hidden = true;
+    const after = adAfter;
+    adAfter = null;
+    if (after) after();
+}
+function showAd(after) {
+    const v = $("adVid"), skip = $("adSkip"), clock = $("adClock");
+    adAfter = after;
+    v.src = pickAd();
+    v.muted = S.muted;
+    v.volume = S.vol;
+    clock.textContent = "0:00";
+    skip.disabled = true;
+    let left = AD_SKIP;
+    skip.textContent = "Skip in " + left + "s";
+    $("ad").hidden = false;
+    clearInterval(adTimer);
+    adTimer = setInterval(() => {
+        const t = v.currentTime || 0, d = isFinite(v.duration) ? v.duration : 0;
+        clock.textContent = fmt(t) + (d ? " / " + fmt(d) : "");
+        if (left > 0) {
+            left--;
+            skip.disabled = left > 0;
+            skip.textContent = left > 0 ? "Skip in " + left + "s" : "Skip ad \u25b8";
+        }
+    }, 1000);
+    v.onended = stopAd;              // the clip ending starts the song
+    v.play().catch(stopAd);          // blocked -> straight to the music
+}
+if ($("adSkip")) $("adSkip").onclick = stopAd;
+if ($("adPro")) $("adPro").onclick = () => {   // upgrade from the ad itself
+    stopAd();
+    openModal();
+};
 function play() {
+    if (adOpen()) return;                       // an ad is already running
+    if (!S.premium && !adDone && $("ad")) return showAd(playNow);
+    playNow();
+}
+function playNow() {
+    adDone = true;
     if (S.mode === "file") {
         audio.play().then(() => {
             S.playing = true;
@@ -645,6 +708,19 @@ function seekTo(t) {
         synthStart = ctx ? ctx.currentTime : 0;
         lastChord = -1;
     }
+}
+/* ← / → jump 10 seconds (styles.css §7 seek bar stays in step). */
+function nudge(dt) {
+    const d = getDur() || 0;
+    /* stop a hair short of the end so a forward nudge never lands exactly on
+       the track's final frame and counts as an ended track. */
+    const t = Math.max(0, d ? Math.min(getTime() + dt, Math.max(0, d - .25)) : getTime() + dt);
+    seekTo(t);
+    if (!dragging) {
+        $("seek").value = d ? t / d * 1000 : 0;
+        range($("seek"), d ? t / d * 100 : 0);
+    }
+    sync();
 }
 function canSkip() {
     if (S.premium) return true;
@@ -992,7 +1068,7 @@ function sync() {
         c.classList.toggle("playing", idx === S.i && S.playing);
         c.querySelector(".play").innerHTML = idx === S.i && S.playing ? PAUSE : PLAY;
     });
-    document.title = S.playing ? `${SONGS[S.i].title} · Music Therapy` : "Music Therapy"
+    document.title = S.playing ? `${SONGS[S.i].title} · Euphonia` : "Euphonia"
     ;
 }
 /* ---------- 6. THE CLOCK ----------
@@ -1132,6 +1208,12 @@ document.addEventListener("keydown", e => {
     }
     if (e.code === "ArrowRight" && e.shiftKey) next(false);
     if (e.code === "ArrowLeft" && e.shiftKey) prev();
+    /* plain ← / → scrub 10 s; the seek and volume sliders keep their own
+       arrow-key behaviour. */
+    if (!e.shiftKey && e.target.type !== "range") {
+        if (e.code === "ArrowRight") { e.preventDefault(); nudge(10); }
+        if (e.code === "ArrowLeft") { e.preventDefault(); nudge(-10); }
+    }
     if (e.code === "Escape" && document.body.classList.contains("fs")) toggleFs();
 });
 /* ---------- 8. VIEWS, MOOD FILTER, SEARCH ----------
@@ -1199,6 +1281,7 @@ function logPlay() {
 function refreshPlan() {
     document.body.classList.toggle("premium", S.premium);
     $("plan").textContent = S.premium ? "★ Premium member" : "";
+    if (S.premium && adOpen()) stopAd();      // upgrading mid-ad hands over to the song
     const m = $("meTop");
     m.setAttribute("style", S.user ? avBg(S.prof) : "");
     m.textContent = S.user ? avInit({...S.prof, name:dispName()}) : "☺";
@@ -1259,6 +1342,12 @@ $("uName").addEventListener("keydown", e => {
    P.step: 'choose' a plan -> 'pay' a mobile number -> 'done' receipt.
    renderPrem() redraws #mBody for whichever step is active.                 */
 const P = {step:"choose", plan:"year", method:"gcash", num:"", err:"", busy:false};
+/* The switcher at the bottom of the Premium sheet: jump between plans (and
+   back to Free) instantly, so both states can be shown without the checkout. */
+const planChips = () => `<h4 class="swh">Switch plan (demo)</h4><div class="chips planset">
+    <button data-setplan="free" class="${S.premium ? "" : "on"}">Free · with ads</button>
+    <button data-setplan="month" class="${S.sub && S.sub.plan === "month" ? "on" : ""}">Monthly · ₱99</button>
+    <button data-setplan="year" class="${S.sub && S.sub.plan === "year" ? "on" : ""}">Yearly · ₱499</button></div>`;
 function renderPrem() {
     const b = $("mBody"), pl = PLANS[P.plan];
     let h = "";
@@ -1285,15 +1374,17 @@ function renderPrem() {
         <div id="tools"><h4>Sleep timer</h4><div class="chips">${chips("sleep", [[0,"Off"],[15,"15 min"],[30,"30 min"],[60,"60 min"]], S.sleepAt ? S.sleepMin : 0)}</div>
         <h4>Playback speed</h4><div class="chips">${chips("speed", [[0.75,"0.75x"],[1,"1x"],[1.25,"1.25x"],[1.5,"1.5x"]], S.speed)}</div></div>
         <button class="cta" data-act="renew">Renew or change plan</button>
-        <button class="link" data-act="cancel">Cancel subscription</button>`;
+        <button class="link" data-act="cancel">Cancel subscription</button>
+        ${planChips()}`;
     } else {
-        h = `<h2>Go Premium ★</h2><p>Pay to unlock Premium. Free users get 5 skips per session and read-only lyrics.</p>
+        h = `<h2>Go Premium ★</h2><p>Pay to unlock Premium. Free users watch an ad before every song and get 5 skips per session.</p>
         <div class="plans2">
         <button class="pcard ${P.plan === "month" ? "on" : ""}" data-plan="month"><b>Monthly</b><strong>₱99</strong><span>per month</span></button>
         <button class="pcard ${P.plan === "year" ? "on" : ""}" data-plan="year"><em>Best value · save ₱689</em><b>Yearly</b><strong>₱499</strong><span>per year (about ₱42/month)</span></button>
         </div>
-        <ul class="perks"><li>Unlimited skips</li><li>Sleep timer with gentle fade-out</li><li>Playback speed 0.75x to 1.5x</li><li>Tap any lyric line to jump to it</li><li>Gold member badge</li></ul>
-        <button class="cta" data-act="pay">Continue · ${peso(pl.price)}</button>`;
+        <ul class="perks"><li>No ads before songs</li><li>Unlimited skips</li><li>Sleep timer with gentle fade-out</li><li>Playback speed 0.75x to 1.5x</li><li>Tap any lyric line to jump to it</li><li>Gold member badge</li></ul>
+        <button class="cta" data-act="pay">Continue · ${peso(pl.price)}</button>
+        ${planChips()}`;
     }
     b.innerHTML = h;
 }
@@ -1333,6 +1424,25 @@ function confirmPay() {
         toast("Welcome to Premium ★");
     }, 1600);
 }
+/* Instant plan switch for demos: no checkout, the saved subscription is
+   rewritten on the spot (still per user, still persisted in localStorage). */
+function setPlan(kind) {
+    if (kind === "free") {
+        cancelSub();                         // same teardown as the Cancel button
+        toast("Free plan: an ad will play before each song.");
+    } else {
+        const pl = PLANS[kind], now = Date.now();
+        S.sub = {plan:kind, price:pl.price, method:"demo", ref:"MT-DEMO" + Math.floor(1000 + Math.random()*9000), paidAt:now, expires:now + pl.days*864e5};
+        store.set(uk("mtSub"), S.sub);
+        S.premium = true;
+        S.skips = 0;
+        toast(pl.name + " Premium: no ads.");
+    }
+    P.err = "";
+    P.step = S.premium ? "plans" : "choose";
+    refreshPlan();
+    renderPrem();
+}
 function cancelSub() {
     S.sub = null;
     S.premium = false;
@@ -1360,6 +1470,7 @@ $("mBody").addEventListener("click", e => {
     const b = e.target.closest("button");
     if (!b) return;
     const d = b.dataset;
+    if (d.setplan) return setPlan(d.setplan);
     if (d.plan) P.plan = d.plan;
     else if (d.method) P.method = d.method;
     else if (d.speed) {
